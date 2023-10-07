@@ -1,5 +1,6 @@
 version: "3.6"
-name: kafka
+name: kafka_environment
+
 volumes:
   broker_1:
     external: false
@@ -14,6 +15,8 @@ volumes:
   zookeeper-log-service:
     external: false
   mongo-service:
+    external: false
+  postgres-service:
     external: false
 
 services:
@@ -242,6 +245,21 @@ services:
       DYNAMIC_CONFIG_ENABLED: "true"
     restart: always
 
+  postgres:
+    image: postgres:latest
+    hostname: postgres
+    container_name: postgres
+    ports:
+      - 5432:5432
+    networks:
+      - clusternet
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=postgres-pass
+      - POSTGRES_USER=postgres
+    volumes:
+      - postgres-service:/var/lib/postgresql/data
+    
 networks: 
   clusternet:
     attachable: true
