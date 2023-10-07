@@ -179,7 +179,7 @@ services:
 
   mongo1:
     image: "mongodb-kafka-base-mongod:1.0"
-    hostname: mongdb
+    hostname: mongodb
     container_name: mongo1
     ports:
       - "27017:27017"
