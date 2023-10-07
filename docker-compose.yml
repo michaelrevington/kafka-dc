@@ -1,5 +1,6 @@
 version: "3.6"
-name: kafka
+name: kafka_environment
+
 volumes:
   broker_1:
     external: false
@@ -15,12 +16,16 @@ volumes:
     external: false
   mongo-service:
     external: false
+  postgres-service:
+    external: false
 
 services:
   zookeeper:
     image: confluentinc/cp-zookeeper:7.2.2
     hostname: zookeeper
     container_name: zookeeper
+    ports:
+      - 2181:2181
     networks:
       - clusternet
     user: root
@@ -39,22 +44,22 @@ services:
     hostname: broker-1
     container_name: broker_1
     restart: "always"
+    networks:
+      - clusternet
     ports:
-      - "29092:29092"
+      - 29092:29092
     depends_on:
       - zookeeper
     volumes:
       - broker_1:/opt/kafka
       - broker_1:/var/lib/kafka/data
       - broker_1:/etc/kafka/secrets
-    networks:
-      - clusternet
     user: root
     environment:
       KAFKA_BROKER_ID: 1
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
       KAFKA_LISTENERS: EXTERNAL://:29092,INTERNAL://:9092
-      KAFKA_ADVERTISED_LISTENERS: EXTERNAL://host.docker.internal:29092,INTERNAL://broker-1:9092
+      KAFKA_ADVERTISED_LISTENERS: EXTERNAL://localhost:29092,INTERNAL://broker-1:9092
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
@@ -70,22 +75,22 @@ services:
     hostname: broker-2
     container_name: broker_2
     restart: "always"
+    networks:
+      - clusternet
     ports:
-      - "29093:29093"
+      - 29093:29093
     depends_on:
-      - zookeeper
+      - broker_1
     volumes:
       - broker_2:/opt/kafka
       - broker_2:/var/lib/kafka/data
       - broker_2:/etc/kafka/secrets 
     user: root
-    networks:
-      - clusternet
     environment:
       KAFKA_BROKER_ID: 2
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
       KAFKA_LISTENERS: EXTERNAL://:29093,INTERNAL://:9093
-      KAFKA_ADVERTISED_LISTENERS: EXTERNAL://host.docker.internal:29093,INTERNAL://broker-2:9093
+      KAFKA_ADVERTISED_LISTENERS: EXTERNAL://localhost:29093,INTERNAL://broker-2:9093
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
@@ -101,22 +106,22 @@ services:
     hostname: broker-3
     container_name: broker_3
     restart: "always"
+    networks:
+      - clusternet
     ports:
-      - "29094:29094"
+      - 29094:29094
     depends_on:
-      - zookeeper
+      - broker_2
     volumes:
       - broker_3:/opt/kafka
       - broker_3:/var/lib/kafka/data
       - broker_3:/etc/kafka/secrets
-    networks:
-      - clusternet
     user: root
     environment:
       KAFKA_BROKER_ID: 3
       KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
       KAFKA_LISTENERS: EXTERNAL://:29094,INTERNAL://:9094
-      KAFKA_ADVERTISED_LISTENERS: EXTERNAL://host.docker.internal:29094,INTERNAL://broker-3:9094
+      KAFKA_ADVERTISED_LISTENERS: EXTERNAL://localhost:29094,INTERNAL://broker-3:9094
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: EXTERNAL:PLAINTEXT,INTERNAL:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
@@ -152,7 +157,7 @@ services:
     environment:
       KAFKA_JMX_PORT: 35000
       KAFKA_JMX_HOSTNAME: broker
-      CONNECT_BOOTSTRAP_SERVERS: "broker_1:29092"
+      CONNECT_BOOTSTRAP_SERVERS: "broker-1:9092"
       CONNECT_REST_ADVERTISED_HOST_NAME: connect
       CONNECT_REST_PORT: 8083
       CONNECT_GROUP_ID: connect-cluster-group
@@ -174,7 +179,7 @@ services:
 
   mongo1:
     image: "mongodb-kafka-base-mongod:1.0"
-    hostname: mongdb
+    hostname: mongodb
     container_name: mongo1
     ports:
       - "27017:27017"
@@ -233,13 +238,28 @@ services:
       - clusternet
     environment:
       KAFKA_CLUSTERS_0_NAME: local
-      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker_1:29092
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker-1:9092
       KAFKA_CLUSTERS_0_METRICS_PORT: 9997
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: first
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://connect:8083
       DYNAMIC_CONFIG_ENABLED: "true"
     restart: always
 
+  postgres:
+    image: postgres:latest
+    hostname: postgres
+    container_name: postgres
+    ports:
+      - 5432:5432
+    networks:
+      - clusternet
+    restart: always
+    environment:
+      - POSTGRES_PASSWORD=postgres-pass
+      - POSTGRES_USER=postgres
+    volumes:
+      - postgres-service:/var/lib/postgresql/data
+    
 networks: 
   clusternet:
     attachable: true
