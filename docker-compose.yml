@@ -254,6 +254,10 @@ services:
     networks:
       - clusternet
     restart: always
+    command:
+      - "postgres"
+      - "-c"
+      - "wal_level=logical"
     environment:
       - POSTGRES_PASSWORD=postgres-pass
       - POSTGRES_USER=postgres
