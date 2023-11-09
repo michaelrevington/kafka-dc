@@ -20,6 +20,8 @@ volumes:
     external: false
   postgres-service:
     external: false
+  ksql-service:
+    external: false
 
 services:
   zookeeper:
@@ -262,6 +264,7 @@ services:
       - broker_2
       - broker_3
       - connect
+      - ksql
     networks:
       - clusternet
     environment:
@@ -271,6 +274,7 @@ services:
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_NAME: first
       KAFKA_CLUSTERS_0_KAFKACONNECT_0_ADDRESS: http://connect:8083
       KAFKA_CLUSTERS_0_SCHEMAREGISTRY: http://schema-registry:8085
+      KAFKA_CLUSTERS_0_KSQLDBSERVER: http://ksql:8081
       DYNAMIC_CONFIG_ENABLED: "true"
     restart: always
 
@@ -292,6 +296,21 @@ services:
       - POSTGRES_USER=postgres
     volumes:
       - postgres-service:/var/lib/postgresql/data
+    
+  ksql:
+    image: confluentinc/cp-ksql-server:latest
+    hostname: ksql
+    container_name: ksql
+    ports:
+      - 8088:8088
+    networks:
+      - clusternet
+    restart: always
+    environment:
+      KSQL_BOOTSTRAP_SERVERS: broker_1:9092
+      KSQL_LISTENERS: http://0.0.0.0:8088, http://ksql:8081
+      KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
+      KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
     
 networks: 
   clusternet:
